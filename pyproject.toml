@@ -1,0 +1,10 @@
+[project]
+name = "ai-learn"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "openai>=2.46.0",
+    "socksio>=1.0.0",
+]
