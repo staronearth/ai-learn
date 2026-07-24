@@ -13,7 +13,7 @@ while True:
     if user_input=="exit":
         break
     if "生成文案" in user_input:
-        user_input+="\\n要求:简洁有力，适合朋友圈发布，不超过50字"
+        user_input+="\n要求:简洁有力，适合朋友圈发布，不超过50字"
     messages.append({"role": "user", "content": user_input})
     #发送api请求
     response = client.chat.completions.create(
@@ -29,4 +29,4 @@ while True:
     #将请求再次写入messages
     messages.append({"role": "user", "content": ai_reply})
     with open("chat_history.txt", "a") as f:
-        f.write(f"你: {user_input}\\nAI: {ai_reply}\\n")
+        f.write(f"你: {user_input}\nAI: {ai_reply}\n")

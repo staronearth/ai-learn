@@ -1,0 +1,8 @@
+#
+.venv
+.pynb_checkpoints
+__pycache__
+lessons-2/python-basics/.pynb_checkpoints
+lessons-2/python-basics/__pycache__
+file.txt
+chat_history.txt
