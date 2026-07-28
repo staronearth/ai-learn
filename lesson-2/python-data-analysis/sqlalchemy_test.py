@@ -118,7 +118,6 @@ if __name__ == "__main__":
     #我的密码中含有@符号需要特殊处理，使用urllib.parse.quote_plus()进行编码
     with MysqlDB() as db:
         # 创建一个新用户
-        
         print("开始注册新用户")
         input_username = input("请输入用户名: ")
         #输入秘密这里需要掩盖
