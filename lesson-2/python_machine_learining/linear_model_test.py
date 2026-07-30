@@ -1,10 +1,17 @@
-from sklearn.linear_model import LinearRegression,SGDRegressor
+from sklearn.linear_model import LinearRegression,SGDRegressor,SGDClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import numpy as np
 import joblib
 from sklearn.datasets import load_wine
 from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import GridSearchCV
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression, SGDRegressor
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
 def student_score_linear():
     #加载数据
     X = np.array([[80, 86], [82, 80], [85, 78], [90, 90],
@@ -63,11 +70,6 @@ def gradient_desent():
 
 def linear_wine():
     
-    from sklearn.model_selection import train_test_split
-    from sklearn.preprocessing import StandardScaler
-    from sklearn.linear_model import LinearRegression, SGDRegressor
-    
-
     # 加载数据集并划分训练集和测试集
     data = load_wine()
     print("样本点数量:", data.data.shape[0])
@@ -135,10 +137,81 @@ def load_model():
     y_pred_sgd = loaded_model.predict(X_test)
     print("MSE (SGD):", mean_squared_error(y_test, y_pred_sgd))
 
+def homework_1():
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    X = np.array([1, 2, 3, 4, 5])
+    y = np.array([2.2, 3.9, 5.8, 7.9, 10.1])
+
+    # 正规方程解
+    X_b = np.c_[X, np.ones_like(X)]  # 添加偏置列
+    w = np.linalg.inv(X_b.T @ X_b) @ X_b.T @ y
+    print(f"系数 w: {w[0]:.2f}, 偏置 b: {w[1]:.2f}")
+
+    plt.scatter(X, y)
+    plt.plot(X, X_b @ w, 'r-')
+    plt.show()
+
+def homework_2():
+    data = load_wine()
+    print("样本点数量:", data.data.shape[0])
+    print("特征名称:", data.feature_names)
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        data.data, data.target, test_size=0.2, random_state=22)
+
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+
+    # 定义 SGD 分类器
+    # loss='hinge' 是线性 SVM，也可以改成 'log_loss' 做逻辑回归
+    model =  SGDClassifier(loss='hinge', max_iter=2000, random_state=42)
+    # 设置要搜索的超参数网格
+    # 常见的参数：alpha（正则化强度）、eta0（初始学习率）、learning_rate（学习率策略）
+    param_grid = {
+        'alpha': [0.0001, 0.001, 0.01, 0.1],
+        'eta0': [0.01, 0.05, 0.1],
+        'learning_rate': ['constant', 'invscaling', 'adaptive']
+    }
+    
+    grid = GridSearchCV(model, param_grid, cv=5, scoring='accuracy')
+    grid.fit(X_train, y_train)
+
+    print("最佳 C:", grid.best_params_)
+    print("最佳交叉验证得分:", grid.best_score_)
+    # 在测试集上评估
+    test_score = grid.score(X_test, y_test)
+    print("测试集准确率: {:.3f}".format(test_score))
+    
+    y_pred_sgd = grid.best_estimator_.predict(X_test)
+    print("测试集准确率 (SGD): {:.3f}".format(accuracy_score(y_test, y_pred_sgd)))
+    joblib.dump(grid.best_estimator_, 'wine_sgd_model.pkl')
+def homework_3():
+    data = load_wine()
+    print("样本点数量:", data.data.shape[0])
+    print("特征名称:", data.feature_names)
+    X_train, X_test, y_train, y_test = train_test_split(
+        data.data, data.target, test_size=0.2, random_state=22)
+
+    # 特征缩放（标准化）
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+    sample_scaled = scaler.transform([[13.2, 2.77, 2.51, 18.5, 96.0, 1.8, 0.85, 3.3, 1.2, 5.7, 1.0, 3.1, 1060]])
+
+    model = joblib.load('wine_sgd_model.pkl')
+    pred = model.predict(sample_scaled)
+    print("预测质量:", pred)
+
 if __name__=="__main__":
     # student_score_linear()
     # normal_equation()
     # gradient_desent()
     # linear_wine()
     # ridge_lasso()
-    load_model()
+    # load_model()
+    # homework_1()
+    homework_2()
+    # homework_3()
