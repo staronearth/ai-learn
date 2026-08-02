@@ -6,7 +6,8 @@ from fastapi.responses import StreamingResponse
 import json
 import time
 from functools import wraps
-def timer(func):
+
+def chat_timer(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
         start_time = time.time()
@@ -33,8 +34,9 @@ class ChatResponse(BaseModel):
     reply: str
     model: str
 
-@timer
+
 @app.post("/chat")
+@chat_timer
 async def chat(request: ChatRequest):
     start = time.time()
     response = client.chat.completions.create(
@@ -73,7 +75,7 @@ async def translate(request: TranslateRequest):
     return {"translation": response.choices[0].message.content}
 
 @app.post("/chat/stream")
-@timer
+@chat_timer
 async def chat_stream(request: ChatRequest):
     def generate():
         stream = client.chat.completions.create(
