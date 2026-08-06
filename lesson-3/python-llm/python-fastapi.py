@@ -12,19 +12,24 @@ def use_requests():
         "Content-Type": "application/json"
     }
     data = {
-        "model": "deepseek-v4-flash",
+        "model": "deepseek-v4-pro",
         "messages": [
             {"role": "system", "content": "你是一个乐于助人的助手。"},
             {"role": "user", "content": "用一句话介绍 Python"}
         ],
-        "max_tokens": 150,
-        "temperature": 0.7
+        "thinking": {"type": "enabled"},
+        "reasoning_effort": "high",
     }
-
     response = requests.post(url, headers=headers, json=data)
+    #[{'index': 0, 'message': {...}, 'logprobs': None, 'finish_reason': 'length'}]
     if response.status_code == 200:
-        answer = response.json()["choices"][0]["message"]["content"]
-        print(f"回答: {answer}")
+        choices_answer = response.json()["choices"]
+        answer = choices_answer[0]["message"]
+        if answer.get("content", ""):
+            content = answer["content"]
+        else:
+            content = answer.get("reasoning_content", "")
+        print(f"回答: {content}")
     else:
         print(f"请求失败，状态码: {response.status_code}, 错误信息: {response.text}")
 def user_openai_sdk():
@@ -36,9 +41,8 @@ def user_openai_sdk():
     )
 
     response = client.chat.completions.create(
-        model="deepseek-v4-flash",
+        model="deepseek-v4-pro",
         messages=[{"role": "user", "content": "用一句话介绍 Python"}],
-        max_tokens=150,
         temperature=0.7
     )
 
@@ -87,7 +91,9 @@ async def create_item(item: Item):
     return {"item": item, "total_price": total}
 if __name__ == "__main__":
     # use_requests()
-    # user_openai_sdk()
+    user_openai_sdk()
     # user_openai_sdk_stream()
     
-    uvicorn.run(app, host="127.0.0.1", port=8001)
+    # uvicorn.run(app, host="127.0.0.1", port=8001)
+
+

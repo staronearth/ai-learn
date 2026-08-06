@@ -14,3 +14,6 @@ lesson-2/python-data-analysis/.env
 *.xlsx
 *.png
 *.pkl
+*.env
+*.jpeg
+*.log
