@@ -38,9 +38,9 @@ def calculate_sub(input: CalculateSubInput) -> int:
     return input.a - input.b
 
 calculate_sub=StructuredTool.from_function(
-    func=calculate_sub, 
-    name="calculate_sub", 
-    description="计算两个数字的差", 
+    func=calculate_sub,
+    name="calculate_sub",
+    description="计算两个数字的差",
     input_schema=CalculateSubInput)
 
 @tool

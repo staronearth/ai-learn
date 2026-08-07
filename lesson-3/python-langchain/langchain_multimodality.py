@@ -70,6 +70,6 @@ def homework1():
         if token.content:
             print(token.content, end="", flush=True)
 if __name__ == "__main__":
-    # cloud_image()
+    cloud_image()
     # local_image()
-    homework1()
+    # homework1()
