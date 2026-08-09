@@ -3,7 +3,14 @@ from datetime import datetime
 from operator import ge
 from webbrowser import get
 
-import requests
+from langchain_core.language_models import llms
+from langchain_core.runnables import RunnableBranch, RunnableLambda, RunnableParallel, RunnablePassthrough
+from langchain_deepseek import ChatDeepSeek
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_tavily import TavilySearch
+from datetime import datetime
+import os
 from dotenv import load_dotenv
 from langchain_core.language_models import llms
 from langchain_core.output_parsers import StrOutputParser
@@ -22,6 +29,7 @@ from pandas._libs.index import multiindex_nulls_shift
 from pydantic import BaseModel, Field
 from streamlit import progress
 from urllib3 import response
+import requests
 
 load_dotenv()
 
@@ -340,7 +348,7 @@ def service_custom_chain():
 
 
 def cross_border_e_commerce_chain():
-    
+
 if __name__ == "__main__":
     # result = sample_chain("世界杯", "今年世界杯的冠军是谁？")
     # print(result)

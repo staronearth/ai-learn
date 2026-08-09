@@ -1,6 +1,7 @@
 #
 .venv
 .pynb_checkpoints
+docs
 __pycache__
 lessons-2/python-basics/.pynb_checkpoints
 lessons-2/python-basics/__pycache__
@@ -19,3 +20,4 @@ lesson-2/python-data-analysis/.env
 *.log
 .agents
 .claude
+db
