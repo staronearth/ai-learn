@@ -28,5 +28,9 @@ dependencies = [
     "sqlalchemy>=2.0.51",
     "streamlit>=1.61.1",
     "tiktoken>=0.13.0",
+    "torch>=2.13.0",
+    "torchaudio>=2.11.0",
+    "torchvision>=0.28.0",
     "uvicorn>=0.52.1",
+    "vllm-metal>=0.1.0",
 ]

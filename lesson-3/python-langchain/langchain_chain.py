@@ -300,8 +300,20 @@ def service_custom_chain():
         | llm
         | StrOutputParser()
     )
+
+    appease_chain = (
+        ChatPromptTemplate.from_template(
+            "首先使用贴心的语气安抚用户生成一段50字的共情语句"
+        )
+        | llm
+        | StrOutputParser()
+    )
+
     complaint_chain = (
-        ChatPromptTemplate.from_template("你是投诉处理专家，请处理：{input}")
+        RunnablePassthrough.assign(appease=appease_chain)
+        | ChatPromptTemplate.from_template(
+            "你是投诉处理专家，首先将安抚语句{appease}输出给用户，然后再请处理：{input}问题"
+        )
         | llm
         | StrOutputParser()
     )
@@ -335,12 +347,14 @@ def service_custom_chain():
     )
 
     # 5. 测试
-    print(customer_service_chain.invoke({"input": "你们的产品怎么退货？"}))
-    print(customer_service_chain.invoke({"input": "今天心情真好！"}))
+    print(customer_service_chain.invoke({"input": "我要投诉，你们的产品怎么退货？"}))
+    # print(customer_service_chain.invoke({"input": "今天心情真好！"}))
 
 
 def cross_border_e_commerce_chain():
-    
+    pass
+
+
 if __name__ == "__main__":
     # result = sample_chain("世界杯", "今年世界杯的冠军是谁？")
     # print(result)
