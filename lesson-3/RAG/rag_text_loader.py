@@ -63,8 +63,8 @@ def recursive_char_split(docs):
     )
     split_docs = text_splitter.split_documents(docs)
     print(f"原始文档数: {len(split_docs)}，切分后块数: {len(split_docs)}")
-    # for doc in split_docs:
-    #     print(f"[{doc.metadata.get('source')}] {doc.page_content[:500]}")
+    for doc in split_docs:
+        print(f"[{doc.metadata}] {doc.page_content[:500]}")
     return split_docs
 
 def struct_split():
@@ -269,4 +269,22 @@ if __name__ == "__main__":
     # length_splitter()
     # qwen_embedding()
     # save_vector(chunks)
-    complete_retrieval()
+    # complete_retrieval()
+
+    with open("./docs/白鹿原.md") as f:
+        data = "".join(line for line in f.readlines())
+    #2.文本分割
+    splitter = MarkdownHeaderTextSplitter(headers_to_split_on=[
+            ("#", "Header 1"),
+            ("##", "Header 2"),
+            ("###", "Header 3"),
+    ])
+    chunks = splitter.split_text(data)
+    # print(f"原始文档数: {len(chunks)}，切分后块数: {len(chunks)}")
+    # for doc in chunks:
+    #     print(f"{doc.metadata} → {doc.page_content[:80]}...")
+
+    text_chunks = recursive_char_split(chunks)
+    # print(f"原始文档数: {len(text_chunks)}，切分后块数: {len(text_chunks)}")
+    # for doc in text_chunks:
+    #     print(f"{doc.metadata} → {doc.page_content[:80]}...")
