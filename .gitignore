@@ -20,3 +20,4 @@ lesson-2/python-data-analysis/.env
 .agents
 .claude
 db
+uv.lock
