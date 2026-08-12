@@ -17,6 +17,7 @@ lesson-2/python-data-analysis/.env
 *.env
 *.jpeg
 *.log
+*.png
 .agents
 .claude
 db
