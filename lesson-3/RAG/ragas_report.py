@@ -1,8 +1,9 @@
 import json
+import os
 import sys
 import time
 import types
-import os
+from telnetlib import AYT
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -15,15 +16,17 @@ from langchain_google_vertexai import ChatVertexAI  # noqa: E402
 _chat_vertexai.ChatVertexAI = ChatVertexAI
 sys.modules["langchain_community.chat_models.vertexai"] = _chat_vertexai
 
-from ragas import Dataset
-from agentic_rag import rag_agent, recorder
-from ragas.llms import llm_factory
-from ragas.embeddings.base import embedding_factory
-from openai import AsyncOpenAI
 import httpx
+from agentic_rag import rag_agent, recorder
 from dotenv import load_dotenv
+from openai import AsyncOpenAI
+from ragas import Dataset
+from ragas.embeddings.base import embedding_factory
+from ragas.llms import llm_factory
 
 load_dotenv()
+
+
 def create_dataset():
     """创建dataset，先尝试本地加载，如果没有则重新生成"""
 
@@ -57,7 +60,7 @@ def create_dataset():
         # 调用 Agent —— 内部 search_knowledge_base tool 会将检索结果存入 contexts_store
         response = rag_agent.invoke(
             {"messages": [{"role": "user", "content": query}]},
-            {"configurable": {"thread_id": f"eval-{i}"}}
+            {"configurable": {"thread_id": f"eval-{i}"}},
         )
         answer = response["messages"][-1].content
 
@@ -65,14 +68,18 @@ def create_dataset():
         contexts = recorder.responses
 
         # 写入数据集
-        dataset.append({
-            "user_input": query,
-            "response": answer,
-            "retrieved_contexts": contexts,
-            "reference": item["ground_truth"],
-        })
+        dataset.append(
+            {
+                "user_input": query,
+                "response": answer,
+                "retrieved_contexts": contexts,
+                "reference": item["ground_truth"],
+            }
+        )
 
-        print(f"[{i + 1}/{len(eval_data)}] {query[:40]}... ✓ (contexts: {len(contexts)}条)")
+        print(
+            f"[{i + 1}/{len(eval_data)}] {query[:40]}... ✓ (contexts: {len(contexts)}条)"
+        )
 
         # 等待一会儿再发下一个请求，避免触发限流
         if i < len(eval_data) - 1:  # 最后一条不用等
@@ -96,9 +103,9 @@ def create_judge_mode():
 
     # 推理模型（qwen 支持的模型）
     evaluator_llm = llm_factory(
-        model="qwen3.8-max",   # 可更换为 "deepseek-ai/DeepSeek-V3" 等
+        model="qwen3.8-max",  # 可更换为 "deepseek-ai/DeepSeek-V3" 等
         client=qwen_client,
-        max_tokens=4096,         # 适当减小避免超时
+        max_tokens=4096,  # 适当减小避免超时
     )
 
     # Embedding 模型（qwen 也提供）
@@ -109,13 +116,90 @@ def create_judge_mode():
 
     print("评估器已配置完成（使用 qwen）")
 
-    return evaluator_llm,evaluator_embeddings
+    return evaluator_llm, evaluator_embeddings
 
 
 def test_agent_ragas():
     # 调用函数，创建dataset
     pass
 
-if __name__=="__main__":
+
+def judge_answer(dataset, evaluator_llm, evaluator_embeddings):
+    results = []
+    for i in range(len(dataset)):
+        row = dataset.__getitem__(i)
+        user_input = row.get("user_input")
+        response = row.get("response")
+        retrieved_contexts = row.get("retrieved_contexts")
+        reference = row.get("reference")
+        # 6个核心指标（从 collections 导入）
+        from ragas.metrics.collections import (
+            AnswerRelevancy,  # 回答相关性
+            ContextEntityRecall,  # 上下文实体召回
+            ContextPrecision,  # 上下文精度
+            ContextRecall,  # 上下文召回
+            Faithfulness,  # 忠实度
+            NoiseSensitivity,  # 噪声敏感度
+        )
+
+        print(f"========开始评估：input:{user_input}===========")
+        # ---- 检索阶段指标 ----
+        cp = ContextPrecision(llm=evaluator_llm)
+
+        cp_result = await cp.ascore(
+            user_input=user_input,
+            reference=reference,
+            retrieved_contexts=retrieved_contexts,
+        )
+        print(f"运行完成context precision评估,score: {cp_result},进度1/6\n")
+
+        cr = ContextRecall(llm=evaluator_llm)
+        cr_result = await cr.ascore(
+            user_input=user_input,
+            reference=reference,
+            retrieved_contexts=retrieved_contexts,
+        )
+        print(f"运行完成context recall评估,score: {cr_result},进度2/6\n")
+
+        cer = ContextEntityRecall(llm=evaluator_llm)
+        cer_result = await cer.ascore(
+            reference=reference,
+            retrieved_contexts=retrieved_contexts,
+        )
+        print(f"运行完成ContextEntityRecall评估,score: {cer_result},进度3/6\n")
+        # ---- 生成阶段指标 ----
+        faith = Faithfulness(llm=evaluator_llm)
+
+        faith_result = await faith.ascore(
+            user_input=user_input,
+            response=response,
+            retrieved_contexts=retrieved_contexts,
+        )
+        print(f"运行完成Faithfulness评估,score: {faith_result},进度4/6\n")
+
+        ar = AnswerRelevancy(llm=evaluator_llm, embeddings=evaluator_embeddings)
+        ar_result = await ar.ascore(
+            user_input=user_input,
+            response=response,
+        )
+        print(f"运行完成AnswerRelevancy评估,score: {ar_result},进度5/6\n")
+
+        ns = NoiseSensitivity(llm=evaluator_llm)
+        ns_result = await ns.ascore(
+            user_input=user_input,
+            response=response,
+            reference=reference,
+            retrieved_contexts=retrieved_contexts,
+        )
+        print(f"运行完成NoiseSensitivity评估,score: {ns_result},进度6/6\n")
+        print(f"========================评估完成==========================")
+    return results
+
+
+if __name__ == "__main__":
     dataset = create_dataset()
-    evaluator_llm,evaluator_embeddings=create_judge_mode()
+    print(dataset.__getitem__(3))
+    evaluator_llm, evaluator_embeddings = create_judge_mode()
+    results = judge_answer(dataset, evaluator_llm, evaluator_embeddings)
+    for result in results:
+        print(result)
