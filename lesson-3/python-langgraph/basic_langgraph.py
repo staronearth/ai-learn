@@ -139,7 +139,7 @@ def test_parallel_edge():
         .add_edge("node_a", "node_c")
         .add_edge("node_c", END)
     ).compile()
-    png_data = graph.get_graph().draw_mermaid_png()
+    png_data = graph.get_graph().draw_mermaid_png(proxies={}, max_retries=3, retry_delay=2.0)
     with open("graph.png", "wb") as f:
         f.write(png_data)
     print("图形已保存到 graph.png")
@@ -197,7 +197,7 @@ def test_condition_edge():
         .add_edge("node_c", END)
         .add_edge("node_d", END)
     ).compile()
-    png_data = graph.get_graph().draw_mermaid_png()
+    png_data = graph.get_graph().draw_mermaid_png(proxies={}, max_retries=3, retry_delay=2.0)
     with open("condation_graph.png", "wb") as f:
         f.write(png_data)
     print("图形已保存到 condation_graph.png")
@@ -275,7 +275,7 @@ def create_agent_graph():
         .add_edge("tools", "llm_node")
         .compile()
     )
-    png_data = agent_graph.get_graph().draw_mermaid_png()
+    png_data = agent_graph.get_graph().draw_mermaid_png(proxies={}, max_retries=3, retry_delay=2.0)
     with open("agent_graph.png", "wb") as f:
         f.write(png_data)
     print("图形已保存到 agent_graph.png")
