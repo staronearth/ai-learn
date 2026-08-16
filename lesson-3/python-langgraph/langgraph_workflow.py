@@ -16,7 +16,7 @@ from operator import add
 from dotenv import load_dotenv
 from pydantic.dataclasses import dataclass
 from pydantic import BaseModel, Field
-
+import os
 load_dotenv()
 
 def display_graph(graph, xray=False):
@@ -25,7 +25,21 @@ def display_graph(graph, xray=False):
     display(Image(graph.get_graph(xray=xray).draw_mermaid_png(proxies={}, max_retries=3, retry_delay=2.0)))
 
 llm = init_chat_model("deepseek-chat")
-
+deepseek_llm=init_chat_model("deepseek-v4-pro")
+qwen_llm=init_chat_model(
+    model_provider="openai",
+    model="qwen3.8-max",
+    base_url=os.environ.get("DASHSCOPE_BASE_URL"),
+    api_key=os.environ.get("DASHSCOPE_API_KEY")
+)
+tecent_llm=init_chat_model(
+    model=os.getenv("TECENT_MODEL_MULTI_NAME"),
+    temperature=0.3,
+    top_p=0.9,
+    model_provider="openai",
+    base_url=os.getenv("TECENT_API_URL"),
+    api_key=os.getenv("TECENT_API_KEY"),
+)
 def prompt_chain():
     # 全局状态
     class State(TypedDict):
@@ -245,8 +259,91 @@ def orchestrator_worker_workflow():
     print(state["final_report"])
     from IPython.display import Markdown
     Markdown(state["final_report"])
+
+
+def evaluator_optimizer():
+    class SloganScore(BaseModel):
+        score: float = Field(..., description="广告语评分,范围0-10")
+        grade: str = Field(..., description="广告语等级")
+        feedback: str = Field(..., description="广告语反馈")
+
+    class AdState(TypedDict):
+        product: str
+        slogan: str
+        score: float
+        grade: str
+        feedback: str
+        iteration: int
+
+    qwen_llm_structured = qwen_llm.with_structured_output(SloganScore)
+    tecent_llm_structured = tecent_llm.with_structured_output(SloganScore)
+
+    def generator_slogan(state: AdState):
+        msg = llm.invoke(f"为产品 {state['product']} 生成一句广告语")
+        print(f"生成广告语: {msg.content}")
+        return {"slogan": msg.content, "iteration": state["iteration"] + 1}
+
+    def qwen_evaluate(state: AdState) -> SloganScore:
+        return qwen_llm_structured.invoke(f"请评价广告语 {state['slogan']} 的优劣，评分的分数在0-10之间，并给出反馈")
+
+    def tecent_evaluate(state: AdState) -> SloganScore:
+        return tecent_llm_structured.invoke(f"请评价广告语 {state['slogan']} 的优劣，评分的分数在0-10之间，并给出反馈")
+
+    def evaluator(state: AdState):
+        # 多个 LLM 评分后归一化：取平均分
+        evaluators = [qwen_evaluate, tecent_evaluate]
+        total_score = 0.0
+        feedback = ""
+        for fn in evaluators:
+            try:
+                result = fn(state)
+                total_score += result.score
+                feedback += result.feedback + " "
+                print(f"{fn.__name__} 评估结果: 评分={result.score}, 等级={result.grade}, 反馈={result.feedback}")
+            except Exception as e:
+                print(f"评估器 {fn.__name__} 出现异常: {e}")
+        avg_score = total_score / len(evaluators)
+        grade = "优秀" if avg_score >= 8 else "良好" if avg_score >= 5 else "一般"
+        print(f"综合评估结果: 评分={avg_score}, 等级={grade}, 反馈={feedback.strip()}")
+        return {"score": avg_score, "grade": grade, "feedback": feedback.strip()}
+
+    def router_after_evaluator(state: AdState):
+        print(f"广告语: {state['slogan']}, 评分: {state['score']}, 等级: {state['grade']}, 反馈: {state['feedback']}")
+        if state["score"] >= 7.0:
+            return "Pass"
+        else:
+            return "Fail"
+
+    def human_feedback(state: AdState):
+        print(f"广告语: {state['slogan']}, 评分: {state['score']}, 等级: {state['grade']}, 反馈: {state['feedback']}")
+        feedback = input("请输入人工反馈(或直接回车跳过):")
+        if feedback:
+            state["feedback"] = feedback
+        print(f"人工反馈: {state['feedback']}")
+        return {"feedback": state["feedback"]}
+
+    evaluator_optimizer_graph = (
+        StateGraph(AdState)
+        .add_node("generator_slogan", generator_slogan)
+        .add_node("evaluator", evaluator)
+        .add_node("human_feedback", human_feedback)
+        .add_edge(START, "generator_slogan")
+        .add_edge("generator_slogan", "evaluator")
+        .add_conditional_edges(
+            "evaluator",
+            router_after_evaluator,
+            {"Pass": END, "Fail": "human_feedback"}
+        )
+        .add_edge("human_feedback", "generator_slogan")
+        .compile()
+    )
+    display_graph(evaluator_optimizer_graph)
+    state = evaluator_optimizer_graph.invoke({"product": "智能手表", "slogan": "", "score": 0, "grade": "", "feedback": "", "iteration": 0})
+    print(f"最终广告语: {state['slogan']}, 迭代次数: {state['iteration']}")
+
 if __name__=="__main__":
     # prompt_chain()
     # parallelization()
     # route_workflow()
-    orchestrator_worker_workflow()
+    # orchestrator_worker_workflow()
+    evaluator_optimizer()
