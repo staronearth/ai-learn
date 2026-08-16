@@ -337,7 +337,6 @@ def orchestrator_worker_workflow():
     Markdown(state["final_report"])
 
 
-<<<<<<< HEAD
 def evaluator_optimizer():
     class SloganScore(BaseModel):
         score: float = Field(..., description="广告语评分,范围0-10")
