@@ -25,12 +25,7 @@ from langgraph.types import (
     interrupt,
 )
 from pydantic import BaseModel, Field
-<<<<<<< HEAD
 import os
-=======
-from pydantic.dataclasses import dataclass
-
->>>>>>> 02771e77c36ef24492830b146aa0f6f59ed3bcbf
 load_dotenv()
 
 
@@ -47,7 +42,6 @@ def display_graph(graph, xray=False):
 
 
 llm = init_chat_model("deepseek-chat")
-<<<<<<< HEAD
 deepseek_llm=init_chat_model("deepseek-v4-pro")
 qwen_llm=init_chat_model(
     model_provider="openai",
@@ -63,10 +57,6 @@ tecent_llm=init_chat_model(
     base_url=os.getenv("TECENT_API_URL"),
     api_key=os.getenv("TECENT_API_KEY"),
 )
-=======
-
-
->>>>>>> 02771e77c36ef24492830b146aa0f6f59ed3bcbf
 def prompt_chain():
     # 全局状态
     class State(TypedDict):
@@ -417,10 +407,8 @@ def evaluator_optimizer():
     state = evaluator_optimizer_graph.invoke({"product": "智能手表", "slogan": "", "score": 0, "grade": "", "feedback": "", "iteration": 0})
     print(f"最终广告语: {state['slogan']}, 迭代次数: {state['iteration']}")
 
-if __name__=="__main__":
-=======
 if __name__ == "__main__":
->>>>>>> 02771e77c36ef24492830b146aa0f6f59ed3bcbf
+
     # prompt_chain()
     # parallelization()
     # route_workflow()
